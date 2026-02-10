@@ -1,5 +1,6 @@
 # holds the load and validate configuration functions (probably in JSON)
 
+from __future__ import annotations
 from dataclasses import field, asdict, dataclass
 from typing import Literal, Dict, Any, Tuple
 import json
@@ -80,7 +81,7 @@ class BoundaryConfig: #done
 class RuntimeConfig:
     show_live_plot: bool = True
     fps: int = 30
-    stats_every_n_steps: int = 20  # stat printing interval
+    stats_steps: int = 20  # stat printing interval
 
 @dataclass
 class OutputConfig:
@@ -95,6 +96,7 @@ class OutputConfig:
 
 @dataclass
 class TopLevelConfig:
+    # loads each of the classes and creates a fresh object for each
     plate: PlateConfig = field(default_factory=PlateConfig)
     solver: SolverConfig = field(default_factory=SolverConfig)
     boundary: BoundaryConfig = field(default_factory=BoundaryConfig)
@@ -135,6 +137,9 @@ class TopLevelConfig:
             return
         with open(self.output.runtime_path, 'w', encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2)
+
+    # TODO: at the moment when the user supplies some preset file, it will just try to apply the overrides listed in the dataclass. 
+    # Need handling for if it fails validation, either revert problem field to default, or revert all fields to default
 
     """
     This is where we will check that all the values are valid (e.g. positive grid size, positive time step, etc.) and raise errors if not. 

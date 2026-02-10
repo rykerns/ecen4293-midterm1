@@ -1,1 +1,1 @@
-# CLI entrypoint
+# CLI entrypoint OR JSON files OR CSV files
