@@ -1,6 +1,12 @@
 # holds the load and validate configuration functions (probably in JSON)
 
-class PlateConfig:
+from dataclasses import field, asdict
+from typing import Literal, Dict, Any
+import json
+
+BCType = Literal["dirichlet", "neumann"]
+
+class PlateConfig: #done
     #Physical size parameters
     Lx: float = 1.0
     Ly: float = 1.0
@@ -15,15 +21,17 @@ class PlateConfig:
     def dy(self) -> float:
         return self.Ly / (self.Ny - 1)
     
-class SolverConfig:
+class SolverConfig: #done
     #Solver parameters
     alpha: float = 0.01  # thermal diffusivity
     dt: float = 0.01     # time step size
     t_end: float = 1.0    #  total simulation time
 
     """ helper function to compute number of time steps """
+    def steps(self) -> int:
+        return max(1, int(round(self.t_end / self.dt)))
 
-class HotspotConfig:
+class HotspotConfig: #done
     """
     Circular hotspot parameters, could be a list of hotspots if we want to support multiple hotspots.
     center: (x,y) coordinates of the center of the hotspot
@@ -35,8 +43,24 @@ class HotspotConfig:
     radius: float = 0.1
     temp: float = 100.0
 
-class BoundaryConfig:
+class BoundarySide: # done
+    """
+    One side boundary condition:
+    -derichlet: T=value
+    -neumann: dT/dn = value (insulated = 0)
+    """
+    type: BCType = "dirichlet"
+    value: float = 0.0
+
+
+
+class BoundaryConfig: #done
     #Boundary condition parameters
+
+    left: BoundarySide = field(default_factory=lambda: BoundarySide("dirichlet", 0.0))
+    right: BoundarySide = field(default_factory=lambda: BoundarySide("dirichlet", 0.0))
+    bottom: BoundarySide = field(default_factory=lambda: BoundarySide("dirichlet", 0.0))
+    top: BoundarySide = field(default_factory=lambda: BoundarySide("dirichlet", 0.0))
 
     """
     BCs for each edge of the plate, could be a string like "Dirichlet" or "Neumann" or something more complex like a function that takes in the grid and returns the BC values. 
@@ -44,6 +68,10 @@ class BoundaryConfig:
 
     """
 
+class RuntimeConfig:
+    show_live_plot: bool = True
+    fps: int = 30
+    stats_every_n_steps: int = 20  # stat printing interval
 class OutputConfig:
     # Output parameters
     save_csv: bool = True
@@ -59,6 +87,41 @@ class TopLevelConfig:
     solver: SolverConfig = SolverConfig()
     boundary: BoundaryConfig = BoundaryConfig()
     output: OutputConfig = OutputConfig()
+    runtime: RuntimeConfig = RuntimeConfig()
+
+    preset_name: str = None
+
+    def validate(self) -> None:
+        # plate dimenstions
+        if self.plate.Lx <=0 or self.plate.Ly <=0:
+            raise ValueError("Plate: physical size value must be non-negative")
+        if self.plate.Nx < 3 or self.plate.Ny < 3:
+            raise ValueError("Plate: Grid must have at least 3 points in each direction (Nx, Ny > 3)")
+        
+        #solver
+        if self.solver.alpha <= 0:
+            raise ValueError("Solver: Thermal diffusivity must be non-negative")
+        if self.solver.dt <= 0:
+            raise ValueError("Solver: dt must be > 0.")
+        if self.solver.t_end <= 0:
+            raise ValueError("Solver: t_end must be > 0.")
+        
+        #hotspots: check bounds and radius
+        for h in self.ic.hotspots:
+            x, y = h.center
+            if not (0.0 <= x <= self.plate.Lx and 0.0 <= y <= self.plate.Ly):
+                raise ValueError(f"Hotspot: center {h.center} is outside the plate.")
+            if h.radius <= 0:
+                raise ValueError("Hotspot: radius must be > 0.")
+            
+        def to_dict(self) -> Dict[str, Any]:
+            return asdict(self)
+        
+        def save_manifest(self) -> None:
+            if not self.output.save_run_manifest:
+                return
+            with open(self.output.manifest_path, 'w', encoding="utf-8") as f:
+                json.dump(self.to_dict(), f, indent=2)
 
     """
     This is where we will check that all the values are valid (e.g. positive grid size, positive time step, etc.) and raise errors if not. 
