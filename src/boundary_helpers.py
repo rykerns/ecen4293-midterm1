@@ -18,7 +18,7 @@ Order of operations:
 
 """
 
-from config import TopLevelConfig, BoundarySide
+from config import TopLevelConfig, BoundarySide, BoundaryConfig
 from typing import Dict, Any
 
 # function to make sure any side is valid
@@ -37,7 +37,7 @@ def _normalize_type(bc_type: str) -> str:
 
 # For each side we check: 1) if it has a valid type (via _normalize_type) and 2) has a value (float)
 def _normalize_side(side: BoundarySide, side_name: str) -> BoundarySide:
-    bc_type = _normalize_side(side.type)
+    bc_type = _normalize_type(side.type)
 
     try: #checks if the value given is valid (must at least be a numeric value)
         val = float(side.value)

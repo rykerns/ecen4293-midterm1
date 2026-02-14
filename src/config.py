@@ -27,7 +27,7 @@ class PlateConfig: #done
 class SolverConfig: #done
     #Solver parameters
     alpha: float = 0.01  # thermal diffusivity
-    dt: float = 0.01     # time step size
+    dt: float = 0.001     # time step size
     t_end: float = 1.0    #  total simulation time
 
     """ helper function to compute number of time steps """
