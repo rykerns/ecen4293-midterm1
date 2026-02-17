@@ -6,7 +6,7 @@
     # Our u0 is (ny, nx) with rows=y, cols=x. Convert to (nx, ny) for ScalarField on [x,y] axes.
     # update: py-pde is not needed with the Finite difference version, but the process is still pretty much the same
 
-# Initially planned to store the snapshots optionally, but moved away from that; yopu may see leftover parts from that
+# Initially planned to store the snapshots optionally, but moved away from that; you may see leftover parts from that
 
 
 import numpy as np
@@ -221,7 +221,7 @@ def run(cfg: TopLevelConfig, store_every: Optional[int] = None, progress: Option
             "t_end": float(solver.t_end),
             "steps": steps,
             "store_every": store_every,
-        },
+        }
     )
 
 
