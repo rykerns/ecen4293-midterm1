@@ -5,6 +5,7 @@
 from config import TopLevelConfig, HotspotConfig
 from solver import run
 
+
 def main():
     cfg = TopLevelConfig()
     cfg.initials.hotspots = (HotspotConfig(center=(0.5, 0.5), radius=0.1, temp=100.0),)

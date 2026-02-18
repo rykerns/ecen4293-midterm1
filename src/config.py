@@ -129,6 +129,28 @@ class TopLevelConfig:
             if h.radius <= 0:
                 raise ValueError("Hotspot: radius must be > 0.")
             
+        # === Output paths – basic sanity === Added some basic checks for output paths and formats,
+        # Takes care of the Things to consider points about output paths and formats in the validate() function.
+        if self.output.save_csv and not self.output.csv_path.strip():
+            raise ValueError("CSV save enabled but csv_path is empty")
+        if self.output.save_image and not self.output.image_path.strip():
+            raise ValueError("Image save enabled but image_path is empty")
+
+        if self.output.save_image:
+            ext = self.output.image_path.lower()[-4:]
+            if ext not in (".png", ".jpg", ".jpeg"):
+                print("Warning: image_path does not end with .png/.jpg/.jpeg — may fail to save")
+
+        # === Boundary conditions – basic check ===
+        for side_name, side in [
+            ("left", self.boundary.left),
+            ("right", self.boundary.right),
+            ("bottom", self.boundary.bottom),
+            ("top", self.boundary.top),
+        ]:
+            if side.type not in ("dirichlet", "neumann"):
+                raise ValueError(f"Invalid boundary type on {side_name}: {side.type}")
+            
     def to_dict(self) -> Dict[str, Any]:
         return asdict(self)
     
@@ -137,9 +159,44 @@ class TopLevelConfig:
             return
         with open(self.output.runtime_path, 'w', encoding="utf-8") as f:
             json.dump(self.to_dict(), f, indent=2)
+    
+    # NEW: Safe preset loading (closes the TODO about preset fallback)     
+    @classmethod
+    def from_preset(cls, preset_path: str) -> 'TopLevelConfig':
+        """
+        Load a preset from JSON file.
+        If loading or validation fails → return default config instead of crashing.
+        """
+        default_cfg = cls()  # fresh defaults
+        try:
+            with open(preset_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Create new config with overrides from preset
+            cfg = cls(
+                plate=PlateConfig(**data.get('plate', {})),
+                solver=SolverConfig(**data.get('solver', {})),
+                boundary=BoundaryConfig(**data.get('boundary', {})),
+                output=OutputConfig(**data.get('output', {})),
+                runtime=RuntimeConfig(**data.get('runtime', {})),
+                initials=InitialConditionConfig(**data.get('initials', {})),
+                preset_name=data.get('preset_name'),
+            )
+            
+            cfg.validate()  # ← uses your improved validate()
+            print(f"Successfully loaded preset: {preset_path}")
+            return cfg
+            
+        except Exception as e:
+            print(f"Failed to load preset '{preset_path}': {e}")
+            print("→ Falling back to default configuration.")
+            default_cfg.validate()  # make sure defaults are ok
+            return default_cfg
 
     # TODO: at the moment when the user supplies some preset file, it will just try to apply the overrides listed in the dataclass. 
     # Need handling for if it fails validation, either revert problem field to default, or revert all fields to default
+
+
 
     """
     This is where we will check that all the values are valid (e.g. positive grid size, positive time step, etc.) and raise errors if not. 
@@ -153,5 +210,4 @@ class TopLevelConfig:
     -check that the output formats are valid (if save_image is True, we need to make sure image_path ends with .png or .jpg or something like that)
     -check that the hotspots are within the grid (if we have a hotspot at (x,y), we need to make sure x is between 0 and Lx; and y is between 0 and Ly)
     """
-
-    
+ 
