@@ -7,7 +7,7 @@ Added debug prints for initial temperature range after applying hotspots
 → Lines added right after the hotspot mask application:Pythonprint("Initial min/max temperature after hotspots:", T.min(), T.max())
 if T.max() <= float(initials.ambient_temperature):
     print("WARNING: No temperature above ambient — check if hotspots were applied!")→ This helped us diagnose why the grid was staying at 0.0 and confirmed hotspots were working after fixes.
-No other functional changes — the core finite-difference solver, boundary application, stability check, and SimulationResult return remained exactly as my Ryan wrote it.
+No other functional changes — the core finite-difference solver, boundary application, stability check, and SimulationResult return remained exactly as Ryan wrote it.
 
 2. config.py
 
