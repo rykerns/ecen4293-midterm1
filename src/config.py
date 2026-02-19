@@ -89,10 +89,12 @@ class OutputConfig:
     save_csv: bool = True
     save_image: bool = True
     save_runtime: bool = True
-
+    save_gif: bool = True               # ← new
     csv_path: str = "output/grid.csv"
     image_path: str = "output/grid.png"
     runtime_path: str = "output/runtime.json"
+    gif_path: str = "output/heat_diffusion.gif"   # ← new
+
 
 @dataclass
 class TopLevelConfig:
@@ -164,33 +166,81 @@ class TopLevelConfig:
     @classmethod
     def from_preset(cls, preset_path: str) -> 'TopLevelConfig':
         """
-        Load a preset from JSON file.
-        If loading or validation fails → return default config instead of crashing.
+        Load configuration from JSON preset with proper nested object construction.
         """
-        default_cfg = cls()  # fresh defaults
+        default_cfg = cls()
         try:
             with open(preset_path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-            
-            # Create new config with overrides from preset
-            cfg = cls(
-                plate=PlateConfig(**data.get('plate', {})),
-                solver=SolverConfig(**data.get('solver', {})),
-                boundary=BoundaryConfig(**data.get('boundary', {})),
-                output=OutputConfig(**data.get('output', {})),
-                runtime=RuntimeConfig(**data.get('runtime', {})),
-                initials=InitialConditionConfig(**data.get('initials', {})),
-                preset_name=data.get('preset_name'),
+
+            # ─── Plate ───────────────────────────────────────────────────────
+            plate = PlateConfig(**data.get('plate', {}))
+
+            # ─── Solver ──────────────────────────────────────────────────────
+            solver = SolverConfig(**data.get('solver', {}))
+
+            # ─── Boundary (nested BoundarySide objects) ──────────────────────
+            boundary_data = data.get('boundary', {})
+            boundary = BoundaryConfig(
+                left=BoundarySide(
+                    type=boundary_data.get('left', {}).get('type', 'dirichlet'),
+                    value=float(boundary_data.get('left', {}).get('value', 0.0))
+                ),
+                right=BoundarySide(
+                    type=boundary_data.get('right', {}).get('type', 'dirichlet'),
+                    value=float(boundary_data.get('right', {}).get('value', 0.0))
+                ),
+                bottom=BoundarySide(
+                    type=boundary_data.get('bottom', {}).get('type', 'dirichlet'),
+                    value=float(boundary_data.get('bottom', {}).get('value', 0.0))
+                ),
+                top=BoundarySide(
+                    type=boundary_data.get('top', {}).get('type', 'dirichlet'),
+                    value=float(boundary_data.get('top', {}).get('value', 0.0))
+                )
             )
-            
-            cfg.validate()  # ← uses your improved validate()
+
+            # ─── Initials (nested HotspotConfig objects) ─────────────────────
+            initials_data = data.get('initials', {})
+            hotspots_raw = initials_data.get('hotspots', [])
+            hotspots = []
+            for h_dict in hotspots_raw:
+                center = h_dict.get('center', [0.5, 0.5])
+                hotspots.append(HotspotConfig(
+                    center=(float(center[0]), float(center[1])),
+                    radius=float(h_dict.get('radius', 0.1)),
+                    temp=float(h_dict.get('temp', 100.0))
+                ))
+
+            initials = InitialConditionConfig(
+                ambient_temperature=float(initials_data.get('ambient_temperature', 0.0)),
+                hotspots=tuple(hotspots)
+            )
+
+            # ─── Output & Runtime ────────────────────────────────────────────
+            output = OutputConfig(**data.get('output', {}))
+            runtime = RuntimeConfig(**data.get('runtime', {}))
+
+            # ─── Build final config ──────────────────────────────────────────
+            cfg = cls(
+                plate=plate,
+                solver=solver,
+                boundary=boundary,
+                output=output,
+                runtime=runtime,
+                initials=initials,
+                preset_name=data.get('preset_name')
+            )
+
+            cfg.validate()
             print(f"Successfully loaded preset: {preset_path}")
+            print(f"  - {len(hotspots)} hotspots loaded")
             return cfg
-            
+
         except Exception as e:
-            print(f"Failed to load preset '{preset_path}': {e}")
+            print(f"Failed to load preset '{preset_path}': {type(e).__name__}: {e}")
             print("→ Falling back to default configuration.")
-            default_cfg.validate()  # make sure defaults are ok
+            default_cfg.validate()
             return default_cfg
 
     # TODO: at the moment when the user supplies some preset file, it will just try to apply the overrides listed in the dataclass. 
@@ -210,4 +260,72 @@ class TopLevelConfig:
     -check that the output formats are valid (if save_image is True, we need to make sure image_path ends with .png or .jpg or something like that)
     -check that the hotspots are within the grid (if we have a hotspot at (x,y), we need to make sure x is between 0 and Lx; and y is between 0 and Ly)
     """
- 
+ # =============================================================================
+#                           MAIN ENTRY POINT
+# When running: python config.py  [ --preset path/to/preset.json ]
+# =============================================================================
+
+if __name__ == "__main__":
+    import argparse
+    import sys
+    import numpy as np
+    import os
+    # ─── Import solver & simulation ONLY here (avoids circular import) ───────
+    from solver import run, SimulationResult
+    from simulation import run_and_animate   # ← the new function we added
+
+    parser = argparse.ArgumentParser(description="Heat Diffusion Sandbox")
+    parser.add_argument("--preset", "-p", type=str, default=None,
+                        help="Path to JSON preset file")
+    parser.add_argument("--save-csv", action="store_true",
+                        help="Force saving CSV even if disabled in config")
+    args = parser.parse_args()
+
+    # Load configuration
+    if args.preset:
+        print(f"→ Loading preset: {args.preset}")
+        cfg = TopLevelConfig.from_preset(args.preset)
+    else:
+        print("→ Using default configuration")
+        cfg = TopLevelConfig()
+
+    # Validate
+    try:
+        cfg.validate()
+    except ValueError as e:
+        print("\nError in configuration:")
+        print(str(e))
+        sys.exit(1)
+
+    # Force CSV save if requested from command line
+    if args.save_csv:
+        cfg.output.save_csv = True
+        print("CSV saving forced via command-line flag")
+
+    print("\nSimulation parameters:")
+    print(f"  Plate: {cfg.plate.Lx:.2f} × {cfg.plate.Ly:.2f}")
+    print(f"  Grid:  {cfg.plate.Nx} × {cfg.plate.Ny}")
+    print(f"  α = {cfg.solver.alpha:.5f}, dt = {cfg.solver.dt:.5f}, t_end = {cfg.solver.t_end:.2f}")
+
+    # Run simulation + show animation
+    print("\nRunning simulation and animation...")
+    run_and_animate(cfg)
+
+    # After animation closes → save CSV (if enabled)
+    # Note: we re-run solver very briefly only to get final_grid
+    #       (not ideal, but keeps simulation.py untouched)
+    if cfg.output.save_csv:
+        print("Saving final grid to CSV...")
+        result = run(cfg, store_every=None)   # no snapshots needed
+        csv_dir = os.path.dirname(cfg.output.csv_path) or "."
+        os.makedirs(csv_dir, exist_ok=True)
+        np.savetxt(
+            cfg.output.csv_path,
+            result.final_grid,
+            delimiter=",",
+            fmt="%.6f",
+            header=f"Final temperature field (shape {result.final_grid.shape})"
+        )
+        print(f"→ Saved to: {cfg.output.csv_path}")
+
+    print("\nDone.")

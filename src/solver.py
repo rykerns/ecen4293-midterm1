@@ -154,6 +154,11 @@ def run(cfg: TopLevelConfig, store_every: Optional[int] = None, progress: Option
         r2 = float(h.radius) ** 2
         mask = (X - float(cx)) ** 2 + (Y - float(cy)) ** 2 <= r2
         T[mask] = float(h.temp)
+        
+        # After applying hotspots ###########################################
+    print("Initial min/max temperature after hotspots:", T.min(), T.max())
+    if T.max() <= float(initials.ambient_temperature):
+        print("WARNING: No temperature above ambient — check if hotspots were applied!")
 
     # Convert BC parts into solver dict
     # Didnt end up needing py-pde for this, but I'll still just reuse the dicts we made in boundary_helpers

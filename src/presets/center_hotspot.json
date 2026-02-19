@@ -1,0 +1,51 @@
+{
+  "preset_name": "Center Hotspot – Classic Diffusion Test",
+  
+  "plate": {
+    "Lx": 1.0,
+    "Ly": 1.0,
+    "Nx": 150,
+    "Ny": 150
+  },
+  
+  "solver": {
+    "alpha": 0.02,
+    "dt": 0.0002,
+    "t_end": 0.5
+  },
+  
+  "initials": {
+    "ambient_temperature": 0.0,
+    "hotspots": [
+      {
+        "center": [0.5, 0.5],
+        "radius": 0.15,
+        "temp": 100.0
+      }
+    ]
+  },
+  
+  "boundary": {
+    "left":   {"type": "dirichlet", "value": 0.0},
+    "right":  {"type": "dirichlet", "value": 0.0},
+    "bottom": {"type": "dirichlet", "value": 0.0},
+    "top":    {"type": "dirichlet", "value": 0.0}
+  },
+  
+  "output": {
+    "save_csv": true,
+    "save_image": true,
+    "save_runtime": true,
+    "save_gif": true,
+    "csv_path": "output/center_hotspot_final.csv",
+    "image_path": "output/center_hotspot_final.png",
+    "runtime_path": "output/center_hotspot_runtime.json",
+    "gif_path": "output/center_hotspot_animation.gif"
+  },
+  
+  "runtime": {
+    "show_live_plot": true,
+    "fps": 30,
+    "stats_steps": 50
+  }
+}

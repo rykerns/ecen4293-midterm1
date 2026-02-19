@@ -5,40 +5,56 @@ import solver as sv
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation as anmtion
 import config as con
-# maybe plotly?
 
-# Instantiate top-level config and calls solver with the selected config.
-cfg = con.TopLevelConfig()
-result = sv.run(cfg)        # Returns simulation with all the info
+def run_and_animate(cfg):
+    """
+    Run the solver with given config and show the animation.
+    This is the function that config.py will call.
+    """
+    result = sv.run(cfg)           # ← runs the solver
 
-#Making a 3D array od the shape K Ny Nx
-snapshots = result.snapshots        # (K (stored frames), Ny (y grid points), Nx (x grid points))
-times = result.times                # (K,) Extracts the array of times tied to every snapshot
-Lx = result.metadata["Lx"]          # Horizontal plane length
-Ly = result.metadata["Ly"]          # Vertical plane length
+    snapshots = result.snapshots
+    times = result.times
+    Lx = result.metadata["Lx"]
+    Ly = result.metadata["Ly"]
 
+    fig, ax = plt.subplots()
+    img = ax.imshow(
+        snapshots[0],
+        origin="lower",
+        extent=[0, Lx, 0, Ly],
+        aspect="equal",
+        cmap="inferno",
+    )
+    cbar = fig.colorbar(img, ax=ax)
+    cbar.set_label("Temperature")
 
-# Pass parameters into 2D array image display
-fig, ax = plt.subplots() # Create figure
-img = ax.imshow(
-    snapshots[0],
-    origin="lower",
-    extent=[0, Lx, 0, Ly],
-    aspect="equal",
-    cmap="inferno",
-)
-cbar = fig.colorbar(img, ax=ax) # Add color bar for reference
-cbar.set_label("Temperature")   # Adds a label to the color bar
+    time_text = ax.text(0.02, 0.95, "", transform=ax.transAxes, color="white")
 
-# Drawing text inside the colormap
-time_text = ax.text(0.02, 0.95, "", transform=ax.transAxes, color="white")
+    def update(frame):
+        img.set_data(snapshots[frame])
+        time_text.set_text(f"t = {times[frame]:.3f}")
+        return img, time_text
 
-# Frame generation and update
-def update(frame):
-    img.set_data(snapshots[frame])
-    time_text.set_text(f"t = {times[frame]:.3f}")
-    return img, time_text
+    anim = anmtion(fig, update, frames=len(snapshots), interval=50, blit=True)
+    
+    # ─── Save as GIF (add this block) ───────────────────────────────────────
+    if cfg.output.save_gif:  # we'll add this flag to config later
+        gif_path = cfg.output.gif_path if hasattr(cfg.output, 'gif_path') else "output/heat_diffusion.gif"
+        
+        print(f"Saving animation as GIF → {gif_path}")
+        try:
+            anim.save(
+                gif_path,
+                writer='pillow',           # uses Pillow (built-in)
+                fps=15,                    # adjust for smoother/faster GIF
+                dpi=100,                   # balance quality vs file size
+                progress_callback=lambda i, n: print(f"  frame {i+1}/{n}", end='\r')
+            )
+            print(f"\nGIF saved successfully: {gif_path}")
+        except Exception as e:
+            print(f"Failed to save GIF: {e}")
+            print("→ Make sure Pillow is installed: pip install pillow")
 
-# Display frames as an animation
-anim = anmtion(fig, update, frames=len(snapshots), interval=50, blit=True)
-plt.show()
+    # ─── Show live (keep your original plt.show()) ───────────────────────────
+    plt.show()
