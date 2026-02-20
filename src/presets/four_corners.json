@@ -1,0 +1,30 @@
+{
+  "preset_name": "Four Corners",
+  "description": "Four hotspots placed near each corner of the plate, all at different temperatures. As they diffuse inward the fronts merge in the center, creating a complex transient pattern before settling toward equilibrium.",
+  "plate": {
+    "Lx": 1.0,
+    "Ly": 1.0,
+    "Nx": 100,
+    "Ny": 100
+  },
+  "solver": {
+    "alpha": 0.01,
+    "dt": 0.001,
+    "t_end": 4.0
+  },
+  "boundary": {
+    "left":   { "type": "dirichlet", "value": 0.0 },
+    "right":  { "type": "dirichlet", "value": 0.0 },
+    "bottom": { "type": "dirichlet", "value": 0.0 },
+    "top":    { "type": "dirichlet", "value": 0.0 }
+  },
+  "initials": {
+    "ambient_temperature": 0.0,
+    "hotspots": [
+      { "center": [0.2, 0.2], "radius": 0.1, "temp": 100.0 },
+      { "center": [0.8, 0.2], "radius": 0.1, "temp": 75.0 },
+      { "center": [0.2, 0.8], "radius": 0.1, "temp": 50.0 },
+      { "center": [0.8, 0.8], "radius": 0.1, "temp": 25.0 }
+    ]
+  }
+}

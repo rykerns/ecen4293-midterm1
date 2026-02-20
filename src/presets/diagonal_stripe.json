@@ -1,0 +1,32 @@
+{
+  "preset_name": "Diagonal Stripe",
+  "description": "A line of small hotspots running diagonally from the bottom-left to the top-right, simulating a narrow heated band. The spots quickly merge into a continuous stripe that then diffuses outward toward the cold walls.",
+  "plate": {
+    "Lx": 1.0,
+    "Ly": 1.0,
+    "Nx": 100,
+    "Ny": 100
+  },
+  "solver": {
+    "alpha": 0.01,
+    "dt": 0.001,
+    "t_end": 2.0
+  },
+  "boundary": {
+    "left":   { "type": "dirichlet", "value": 0.0 },
+    "right":  { "type": "dirichlet", "value": 0.0 },
+    "bottom": { "type": "dirichlet", "value": 0.0 },
+    "top":    { "type": "dirichlet", "value": 0.0 }
+  },
+  "initials": {
+    "ambient_temperature": 0.0,
+    "hotspots": [
+      { "center": [0.15, 0.15], "radius": 0.06, "temp": 100.0 },
+      { "center": [0.30, 0.30], "radius": 0.06, "temp": 100.0 },
+      { "center": [0.45, 0.45], "radius": 0.06, "temp": 100.0 },
+      { "center": [0.60, 0.60], "radius": 0.06, "temp": 100.0 },
+      { "center": [0.75, 0.75], "radius": 0.06, "temp": 100.0 },
+      { "center": [0.90, 0.90], "radius": 0.06, "temp": 100.0 }
+    ]
+  }
+}

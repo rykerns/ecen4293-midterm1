@@ -1,0 +1,25 @@
+{
+  "preset_name": "Hot Wall / Cold Wall",
+  "description": "The left edge is held at 100° and the right edge at 0°, with insulated top and bottom. Over time the plate develops a linear temperature gradient from left to right — the classical 1D steady-state solution embedded in 2D.",
+  "plate": {
+    "Lx": 1.0,
+    "Ly": 1.0,
+    "Nx": 100,
+    "Ny": 100
+  },
+  "solver": {
+    "alpha": 0.01,
+    "dt": 0.001,
+    "t_end": 5.0
+  },
+  "boundary": {
+    "left":   { "type": "dirichlet", "value": 100.0 },
+    "right":  { "type": "dirichlet", "value": 0.0 },
+    "bottom": { "type": "neumann",   "value": 0.0 },
+    "top":    { "type": "neumann",   "value": 0.0 }
+  },
+  "initials": {
+    "ambient_temperature": 0.0,
+    "hotspots": []
+  }
+}
