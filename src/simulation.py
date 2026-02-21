@@ -1,40 +1,49 @@
-# wraps the PDE solver and the step/run functions
-# Import PDE solver and step/run functions
+# simulation.py
+# Wraps the PDE solver and handles visualization + animation
 
 import solver as sv
 import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation as anmtion
+from matplotlib.animation import FuncAnimation
 import config as con
+import numpy as np
 
 def run_and_animate(cfg):
     """
-    Run the solver with given config and show the animation.
-    This is the function that config.py will call.
+    Run the solver with given config and show an interactive animation.
+    This function is called from config.py or main entry point.
 
     Controls:
-        Space: Play/Pause
-        Left: Step one frame backwards
-        Right: Step once frame forwards
-        Down: Step ten frames downwards
-        Up: Step ten frames forwards
-        A: Step 100 frames backwards
-        D: Step 100 frames forwards
+        Space:      Play / Pause
+        Up:         +10 frames forward
+        Down:       -10 frames backward
+        A:          -100 frames backward
+        D:          +100 frames forward
     """
-    result = sv.run(cfg)           # ← runs the solver
+    # ─── Run simulation ──────────────────────────────────────────────────────
+    result = sv.run(cfg)
     snapshots = result.snapshots
     times = result.times
-    print("times[0], times[-1]:", times[0], times[-1])
-    print("snap 0 min/max:", snapshots[0].min(), snapshots[0].max())
-    print("snap last min/max:", snapshots[-1].min(), snapshots[-1].max())
+
+    n_frames = len(snapshots)
+
+    # Calculate real time step between stored frames for accurate controls text
+    if n_frames > 1:
+        dt_frame = times[1] - times[0]
+        time_10  = 10 * dt_frame
+        time_100 = 100 * dt_frame
+    else:
+        time_10 = time_100 = 0.0
+
+    print(f"Simulation complete. Frames: {n_frames}, Time range: {times[0]:.3f} → {times[-1]:.3f}")
+    print(f"Initial min/max: {snapshots[0].min():.2f} / {snapshots[0].max():.2f}")
+    print(f"Final min/max:   {snapshots[-1].min():.2f} / {snapshots[-1].max():.2f}")
 
     Lx = result.metadata["Lx"]
     Ly = result.metadata["Ly"]
 
-    n_frames = len(snapshots)
-    # nonlocal update(), on_key(event)
+    # ─── Create figure and main axes ─────────────────────────────────────────
+    fig, ax = plt.subplots(figsize=(10, 10))
 
-
-    fig, ax = plt.subplots()
     img = ax.imshow(
         snapshots[0],
         origin="lower",
@@ -42,107 +51,108 @@ def run_and_animate(cfg):
         aspect="equal",
         cmap="inferno",
     )
-    cbar = fig.colorbar(img, ax=ax)
-    cbar.set_label("Temperature")
+        
+    # Controls legend at bottom (using figure coordinates so it stays outside plot)
+    controls_text = (
+    "Control Instructions:\n"
+    "Space     : Play/Pause\n"
+    f"  Up        : +{time_10:.4f} time units\n"
+    f"  Down      : -{time_10:.4f} time units\n"
+    f"  A         : +{time_100:.4f} time units\n"
+    f"  D         : -{time_100:.4f} time units")
+    
+    ax.set_title(controls_text, fontsize=10, family="monospace", color="white", bbox=dict(facecolor="black", alpha=0.65, boxstyle="round,pad=0.5"))
+    cbar = fig.colorbar(img, ax=ax, pad=0.03)
+    cbar.set_label("Temperature", rotation=270, labelpad=15)
 
     time_text = ax.text(0.02, 0.95, "", transform=ax.transAxes, color="white")
 
-    controls_text = ("Controls:\n",
-                     " Space: Play/Pause\n",
-                     " Left/Right: ±1 frame\n",
-                     " Up/Down: ±10 frame\n",
-                     " A/D: ±100 frame\n",
-                     )
-
-    ax.text(
-        0.02, 0.02,
-        controls_text,
-        transform=ax.transAxes,
-        fontsize=8,
-        color="black",
-        va="bottom",
-        ha="left",
-        bbox=dict(facecolor="white", alpha=0.4, edgecolor="none", pad=3),
-    )
-
-    # ----- Animation State --------
-
+    # ─── Animation state ─────────────────────────────────────────────────────
     current_frame = 0
-    running = True
+    running = False          # Start paused → shows t=0 clearly
 
-    def update(_):
-        nonlocal current_frame, running
+    def update(frame):
+        nonlocal current_frame, running   # ← This line fixes the UnboundLocalError
 
-        if running:
-            # Advance one frame, but stop at the last frame (no wrap)
-            if current_frame < n_frames - 1:
-                current_frame += 1
-        img.set_data(snapshots[current_frame])
-        time_text.set_text(f"t = {times[current_frame]:.3f}")
+        # Check if we're in export mode (set temporarily during save)
+        is_export = getattr(update, 'is_export', False)
+
+        if is_export:
+            # During GIF save → force exact frame
+            display_frame = frame
+        else:
+            # Interactive mode → only advance if playing
+            if running:
+                if frame > current_frame:  # prevent going backwards during normal play
+                    current_frame = min(n_frames - 1, current_frame + 1)
+            display_frame = current_frame
+
+        img.set_data(snapshots[display_frame])
+        time_text.set_text(f"t = {times[display_frame]:.3f}")
         return img, time_text
-    
-    # ----- Keyboard Control Handler ----------
+
+    # ─── Keyboard controls ───────────────────────────────────────────────────
     def on_key(event):
         nonlocal current_frame, running
 
-        match event.key:
-            case " ":
-                running = not running
-            case "up":
-                running = False
-                current_frame = min(n_frames - 1, current_frame + 10)
-            case "down":
-                running = False
-                current_frame = max(0, current_frame - 10)
-            case "left":
-                running = False
-                if current_frame > 0:
-                    current_frame -= 1
-            case "right":
-                running = False
-                if current_frame < n_frames - 1:
-                    current_frame += 1
-            case "a":
-                running = False
-                current_frame = max(0, current_frame - 100)
-            case "d":
-                running = False
-                current_frame = min(n_frames - 1, current_frame + 100)
-            case _:
-                return
+        key = event.key.lower()
 
+        if key == " ":
+            running = not running
+        elif key == "up":
+            running = False
+            current_frame = min(n_frames - 1, current_frame + 10)
+        elif key == "down":
+            running = False
+            current_frame = max(0, current_frame - 10)
+        elif key == "a":
+            running = False
+            current_frame = max(0, current_frame - 100)
+        elif key == "d":
+            running = False
+            current_frame = min(n_frames - 1, current_frame + 100)
+        else:
+            return
 
+        # Refresh display
         img.set_data(snapshots[current_frame])
         time_text.set_text(f"t = {times[current_frame]:.3f}")
         event.canvas.draw_idle()
 
     fig.canvas.mpl_connect("key_press_event", on_key)
 
-    anim = anmtion(fig, update, 
-                   frames=n_frames, 
-                   interval=50, 
-                   blit=True,
-                   )
-    
-    
-    # ─── Save as GIF (add this block) ───────────────────────────────────────
-    if cfg.output.save_gif:  # we'll add this flag to config later
-        # gif_path = cfg.output.gif_path if hasattr(cfg.output, 'gif_path') else "output/heat_diffusion.gif"
-        gif_path = getattr(cfg.output, "gif_path", "out/heat_diffusion.gif")
+    # ─── Animation object ────────────────────────────────────────────────────
+    anim = FuncAnimation(
+        fig,
+        update,
+        frames=n_frames,
+        interval=50,
+        blit=True,
+        repeat=False
+    )
 
-        print(f"Saving animation as GIF → {gif_path}")
+    # ─── Save GIF (always full playback) ─────────────────────────────────────
+    if cfg.output.save_gif:
+        gif_path = getattr(cfg.output, "gif_path", "output/heat_diffusion.gif")
+        print(f"Saving full animation as GIF → {gif_path}")
+
+        # Tell update we're exporting → it will use the frame index directly
+        update.is_export = True
         try:
             anim.save(
                 gif_path,
-                writer='pillow',           # uses Pillow (built-in)
-                fps=15,                    # adjust for smoother/faster GIF
-                dpi=100,                   # balance quality vs file size
+                writer='pillow',
+                fps=15,
+                dpi=110,
                 progress_callback=lambda i, n: print(f"  frame {i+1}/{n}", end='\r')
             )
             print(f"\nGIF saved successfully: {gif_path}")
         except Exception as e:
             print(f"Failed to save GIF: {e}")
-            print("→ Make sure Pillow is installed: pip install pillow")
+            print("→ Ensure Pillow is installed: pip install pillow")
+        finally:
+            if hasattr(update, 'is_export'):
+                del update.is_export
 
-    # ─── Show live (keep your original plt.show()) ───────────────────────────
+    # ─── Show interactive window ─────────────────────────────────────────────
     plt.show()
