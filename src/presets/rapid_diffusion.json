@@ -1,0 +1,33 @@
+{
+  "preset_name": "Rapid Diffusion (High Conductivity)",
+  "description": "A high thermal diffusivity simulating a copper-like material. The hotspot spreads very quickly and reaches near-equilibrium in a short time. Note the smaller dt required to satisfy the CFL stability condition at high alpha.",
+  "plate": {
+    "Lx": 1.0,
+    "Ly": 1.0,
+    "Nx": 80,
+    "Ny": 80
+  },
+  "solver": {
+    "alpha": 0.05,
+    "dt": 0.0002,
+    "t_end": 1.0
+  },
+  "boundary": {
+    "left":   { "type": "dirichlet", "value": 0.0 },
+    "right":  { "type": "dirichlet", "value": 0.0 },
+    "bottom": { "type": "dirichlet", "value": 0.0 },
+    "top":    { "type": "dirichlet", "value": 0.0 }
+  },
+  "initials": {
+    "ambient_temperature": 0.0,
+    "hotspots": [
+      { "center": [0.5, 0.5], "radius": 0.1, "temp": 100.0 }
+    ]
+  },
+      "output": {
+    "save_csv": true,
+    "save_gif": true,
+    "csv_path": "output/rapid_diffusion_final.csv",
+    "gif_path": "output/rapid_diffusion_animation.gif"
+  }
+}

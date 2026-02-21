@@ -1,4 +1,3 @@
-# simulation.py
 # Wraps the PDE solver and handles visualization + animation
 
 import solver as sv

@@ -1,0 +1,33 @@
+{
+  "preset_name": "Corner Hotspot (Mixed BCs)",
+  "description": "A hotspot placed in the bottom-left corner with the left and bottom edges insulated and the right and top edges held cold. Heat can only escape through two of the four walls, producing an asymmetric diffusion pattern.",
+  "plate": {
+    "Lx": 1.0,
+    "Ly": 1.0,
+    "Nx": 100,
+    "Ny": 100
+  },
+  "solver": {
+    "alpha": 0.01,
+    "dt": 0.001,
+    "t_end": 3.0
+  },
+  "boundary": {
+    "left":   { "type": "neumann",   "value": 0.0 },
+    "right":  { "type": "dirichlet", "value": 0.0 },
+    "bottom": { "type": "neumann",   "value": 0.0 },
+    "top":    { "type": "dirichlet", "value": 0.0 }
+  },
+  "initials": {
+    "ambient_temperature": 0.0,
+    "hotspots": [
+      { "center": [0.15, 0.15], "radius": 0.12, "temp": 100.0 }
+    ]
+  },
+      "output": {
+    "save_csv": true,
+    "save_gif": true,
+    "csv_path": "output/corner_mixed_bc_final.csv",
+    "gif_path": "output/corner_mixed_bc_animation.gif"
+  }
+}

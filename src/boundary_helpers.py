@@ -1,4 +1,4 @@
-# may not need this file, but if we do it will hold the functions for applying boundary conditions to the PDE solver (might be worked into the simulation file instead)
+# hold the functions for applying boundary conditions to the PDE solver
 
 """
 Py-pde needs dict entries for each side of the plate that describe the boundary entry points for the max/min of the top/bottom and left/right
@@ -79,4 +79,3 @@ def make_bc(cfg: TopLevelConfig) -> Dict[str, Any]:
         },
     }
 
-# TODO: (maybe) add a function that generates a high-level summary for logging

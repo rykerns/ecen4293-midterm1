@@ -1,1 +1,0 @@
-# exports the grid to a file (probably CSV/JSON or something simple like that)

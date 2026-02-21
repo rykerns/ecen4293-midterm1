@@ -1,0 +1,33 @@
+{
+  "preset_name": "Centered Hotspot",
+  "description": "A single hot circle in the center of a uniformly cold plate with all edges held at 0°. The classic diffusion demo — watch the hotspot spread and decay.",
+  "plate": {
+    "Lx": 1.0,
+    "Ly": 1.0,
+    "Nx": 100,
+    "Ny": 100
+  },
+  "solver": {
+    "alpha": 0.01,
+    "dt": 0.001,
+    "t_end": 2.0
+  },
+  "boundary": {
+    "left":   { "type": "dirichlet", "value": 0.0 },
+    "right":  { "type": "dirichlet", "value": 0.0 },
+    "bottom": { "type": "dirichlet", "value": 0.0 },
+    "top":    { "type": "dirichlet", "value": 0.0 }
+  },
+  "initials": {
+    "ambient_temperature": 0.0,
+    "hotspots": [
+      { "center": [0.5, 0.5], "radius": 0.12, "temp": 100.0 }
+    ]
+  },
+    "output": {
+    "save_csv": true,
+    "save_gif": true,
+    "csv_path": "output/centered_hotspot_final.csv",
+    "gif_path": "output/centered_hotspot_animation.gif"
+  }
+}

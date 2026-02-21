@@ -1,4 +1,4 @@
-# holds the load and validate configuration functions (probably in JSON)
+# holds the load and validate configuration functions (in JSON)
 
 from __future__ import annotations
 from dataclasses import field, asdict, dataclass
@@ -243,26 +243,9 @@ class TopLevelConfig:
             default_cfg.validate()
             return default_cfg
 
-    # TODO: at the moment when the user supplies some preset file, it will just try to apply the overrides listed in the dataclass. 
-    # Need handling for if it fails validation, either revert problem field to default, or revert all fields to default
-
-
-
-    """
-    This is where we will check that all the values are valid (e.g. positive grid size, positive time step, etc.) and raise errors if not. 
-    We can also add any derived parameters here if needed (e.g. number of time steps based on t_end and dt).
-
-    Things to consider:
-    -raise values error if any of the parameters are invalid (negative grid size, negative time step, etc.)
-    -compute any derived parameters (number of time steps based on t_end and dt)
-    -check the boundaries of the grid ( if we have a Dirichlet BC, we need to make sure we have values for the edges of the grid)
-    -check that the output paths are valid (if save_csv is True, we need to make sure csv_path is a valid path)
-    -check that the output formats are valid (if save_image is True, we need to make sure image_path ends with .png or .jpg or something like that)
-    -check that the hotspots are within the grid (if we have a hotspot at (x,y), we need to make sure x is between 0 and Lx; and y is between 0 and Ly)
-    """
  # =============================================================================
 #                           MAIN ENTRY POINT
-# When running: python config.py  [ --preset path/to/preset.json ]
+# When running: python config.py  [ --preset presets/file_name.json ]
 # =============================================================================
 
 if __name__ == "__main__":
